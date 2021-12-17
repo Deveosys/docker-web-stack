@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  nginx:
+    build: docker/nginx
+    restart: on-failure
+    volumes:
+      # this will mount the api folder which contains the code to the docker container
+      - ${PWD}/api:/var/www/api:delegated
+      # this will mount the nginx logs so that you can check the logs for errors,
+      # without logging into the container
+      - ${PWD}/var/logs/nginx/:/var/log/nginx:delegated
+      # this will create the server config to serve the api
+      - ${PWD}/docker/nginx/api.conf:/etc/nginx/conf.d/api.conf:delegated
+    ports:
+      - "90:80"
+    depends_on:
+      - api
+      - nextjs
+    networks:
+      - monitoring
+
+  api:
+    build: docker/php
+    restart: on-failure
+    volumes:
+      # this will mount the api folder which contains the code to the docker container
+      - ${PWD}/api:/var/www/api:delegated
+      # this will mount the custom `.ini` to the container
+      - ${PWD}/docker/php/php.ini:/usr/local/etc/php/php.ini:ro
+    networks:
+      - monitoring
+
+  nextjs:
+    build: ./nextjs
+    restart: on-failure
+    # below line starts the project
+    command: "npm run dev"
+    depends_on:
+      - api
+    networks:
+      - monitoring
+    volumes:
+      # this will mount the ui folder which contains the code to the docker container
+      - ${PWD}/nextjs:/var/www/nextjs:delegated
+      # this will mount the node_modules folder for faster performance
+      - nodemodules:/var/www/nextjs/node_modules
+    ports:
+      - "3000:3000"
+
+  db:
+    image: mysql
+    restart: always
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - monitoring
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: db
+    networks:
+      - monitoring
+
+# networks
+networks:
+  monitoring:
+    driver: bridge
+
+# volumes
+volumes:
+  nodemodules: {}
+  db-data: {}
