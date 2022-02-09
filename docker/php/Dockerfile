@@ -14,10 +14,9 @@ RUN apk update \
 # install php dependencies
 RUN apk add --no-cache $PHPIZE_DEPS \
     && pecl install -f xdebug \
-    && docker-php-ext-install intl opcache bcmath sockets \
-    && docker-php-ext-enable xdebug intl opcache bcmath sockets \
-    && rm -rf /var/lib/apt/lists/* \
-    && docker-php-ext-install pdo_mysql
+    && docker-php-ext-install intl opcache bcmath pdo_mysql \
+    && docker-php-ext-enable xdebug intl opcache bcmath \
+    && rm -rf /var/lib/apt/lists/*
 
 # install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
